@@ -1,0 +1,92 @@
+array(7) {
+  [12] => array(4) {
+    ["id"] => int(12)
+    ["merId"] => string(20) "M20190628180358JH2H0"
+    ["number"] => string(19) "A201906281803587SMW"
+    ["serProvId"] => string(20) "S2019050815152748216"
+  }
+  [14] => array(4) {
+    ["id"] => int(14)
+    ["merId"] => string(20) "M20190521180355AD2CE"
+    ["number"] => string(20) "A20190701105829QB0LQ"
+    ["serProvId"] => string(20) "S2019050815152748216"
+  }
+  [24] => array(4) {
+    ["id"] => int(24)
+    ["merId"] => string(20) "M20190521142811E8FA9"
+    ["number"] => string(20) "A20190521142811814B3"
+    ["serProvId"] => string(20) "S2019050815152748216"
+  }
+  [25] => array(4) {
+    ["id"] => int(25)
+    ["merId"] => string(20) "M2019052112231644B5D"
+    ["number"] => string(20) "A20190521122316AA5BA"
+    ["serProvId"] => string(20) "S2019050815152748216"
+  }
+  [26] => array(4) {
+    ["id"] => int(26)
+    ["merId"] => string(20) "M201907041140015A3C2"
+    ["number"] => string(20) "A20190704114001C2A9C"
+    ["serProvId"] => string(20) "S2019050815152748216"
+  }
+  [29] => array(4) {
+    ["id"] => int(29)
+    ["merId"] => string(20) "M201907041057246BBD1"
+    ["number"] => string(20) "A201907041057240AE46"
+    ["serProvId"] => string(20) "S2019050815152748216"
+  }
+  [30] => array(4) {
+    ["id"] => int(30)
+    ["merId"] => string(20) "M20190704094639CC350"
+    ["number"] => string(20) "A20190704094639BE2F6"
+    ["serProvId"] => string(20) "S2019050815152748216"
+  }
+}
+http://ysf.bcbip.cn:10240/gateway/api/merchantQuery
+
+
+function curl_multi_post($url,$data=array(),$json = true){
+    // 初始化
+    $mh = curl_multi_init();
+    foreach ($data as $key=>$val){
+        $conn[$key] = curl_init();
+        curl_setopt($conn[$key], CURLOPT_URL, $url);
+        curl_setopt($conn[$key], CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($conn[$key], CURLOPT_SSL_VERIFYHOST, false);
+        if (!empty($val)) {
+            if($json && is_array($val)){
+                $val = json_encode($val,JSON_UNESCAPED_SLASHES);
+            }
+
+            if($json){ //发送JSON数据
+                curl_setopt($conn[$key], CURLOPT_HEADER, 0);
+                curl_setopt($conn[$key], CURLOPT_HTTPHEADER,array('Content-Type: application/json; charset=utf-8','Content-Length:' . strlen($val)));
+            }
+			curl_setopt($conn[$key], CURLOPT_POST, 1);
+            curl_setopt($conn[$key], CURLOPT_POSTFIELDS, $val);
+        }
+        curl_setopt($conn[$key], CURLOPT_RETURNTRANSFER, 1);
+        //设置连接超时时间
+        curl_setopt($conn[$key], CURLOPT_CONNECTTIMEOUT, 120);
+        //设置请求超时时间
+        curl_setopt($conn[$key], CURLOPT_TIMEOUT, 120);
+
+        curl_multi_add_handle($mh,$conn[$key]);
+    }
+    //获取内容
+    $running=null;
+    do {
+        curl_multi_exec($mh, $running);
+        curl_multi_select($mh);
+    } while ($running > 0);
+
+    $res=[];
+    foreach ($data as $key=>$val) {
+        $res[$key]=curl_multi_getcontent($conn[$key]);
+
+        curl_multi_remove_handle($mh,$conn[$key]);
+        //等待所有http请求结束返回数据依次生成文件。
+    }
+    curl_multi_close($mh);
+    return array('code' =>200, 'data' => $res);
+}

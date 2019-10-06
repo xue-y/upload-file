@@ -1,0 +1,61 @@
+﻿山东大学	20613604	计算机科学与技术
+
+php 历史版本：http://www.php.net/releases/
+
+compmgmt.msc
+
+
+山东卓驰信息科技有限公司
+
+
+services.msc
+
+error_reporting(E_ALL);
+set_error_handler([__CLASS__, 'appError']);  函数设置用户自定义的错误处理函数。
+set_exception_handler([__CLASS__, 'appException']); 函数设置用户自定义的异常处理函数
+register_shutdown_function([__CLASS__, 'appShutdown']);  注册一个在关机时执行的函数
+
+
+
+  // table 工具栏添加再次点击消失
+  $('div[lay-event="LAYTABLE_COLS"]').click(function(obj){
+     if($('.layui-table-tool-panel').length==1){
+            
+     }
+  });
+ALTER TABLE  `cas_admin_auth` ADD UNIQUE (
+`module`
+);
+
+   //批量删除
+  /*$('div[lay-event="delete"]').click(function(){
+		let deList=$('form').serializeArray();
+		let data=[];
+		$.each(deList, function(i,n){
+			data.push(n.value);
+		});
+		$.post("{:url('log/login/delete')}",{id:data},function(data){					
+			if(data.code==1){
+		     window.location.reload();
+			}
+		 	layer.alert(data.msg);
+		},'json').error(function(xhr,status,error){
+			console.log(xhr); // 调试模式
+			layer.alert(status+':'+error);
+		});			
+   });*/
+   
+   
+   
+        // 排除不生成token的方法
+        /*$exclude_action='delete';
+        $current_action=$this->request->action(true);
+        if($this->request->isAjax() && ($current_action!=$exclude_action)){
+            // ajax 提交 生成新的token;
+            $token=request()->token();
+            if(empty($data)){
+                $data=$token;
+            }else{
+                $data['token']=$token;
+            }
+        }*/
