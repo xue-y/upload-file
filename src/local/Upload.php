@@ -42,6 +42,11 @@ class Upload extends Base {
         header("Cache-Control: no-store, no-cache, must-revalidate");
         header("Cache-Control: post-check=0, pre-check=0", false);
         header("Pragma: no-cache");
+		header("Access-Control-Allow-Origin: *"); // Support CORS
+
+        if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { // other CORS headers if any...
+            exit; // finish preflight CORS requests here
+        }
     }
 
     //TODO 创建/验证文件目录
@@ -67,7 +72,8 @@ class Upload extends Base {
     // TODO 获取上传文件路径
     private function setFilePath($file_ext){
         $fileName=$this->getFileName($this->time,$file_ext);
-        //$fileName=$_FILES["file"]["name"];
+        //$fileName=$_FILES["file"]["name"]; 
+		// 如果是分片，每一片请求一次前端，所以临时文件名不可用时间戳，临时文件名不唯一，合并文件找不到统一文件名，合并失败
         $this->fileTmpPath = $this->uploadTmpDir . DIRECTORY_SEPARATOR .$_FILES["file"]["name"];
         $this->filePath = $this->uploadDir . DIRECTORY_SEPARATOR . $fileName;
     }
@@ -94,7 +100,7 @@ class Upload extends Base {
             if (!$dir = opendir($this->uploadTmpDir)) {
                 $this->resultMsg(0,'文件上传临时目录打开失败');
             }
-
+			
             while (($file = readdir($dir)) !== false) {
                 $tmpfilePath = $this->uploadTmpDir . DIRECTORY_SEPARATOR . $file;
 
@@ -172,7 +178,6 @@ class Upload extends Base {
             }
             @fclose($out);
         }
-
         $this->resultMsg(1,'ok',$this->filePath);
     }
 
@@ -181,7 +186,8 @@ class Upload extends Base {
         $this->setHead();
         $this->vailFile();
         $this->setUploadPath();
-	    $this->setFilePath($_POST['file_ext']);
+		$file_exe=$this->getFileExt();
+	    $this->setFilePath($file_exe);
 	    $this->getChunk();
 	    $this->uploadFile();
 	}

@@ -34,6 +34,15 @@ class Base
         return date('Ym',$time);
     }
 
+	/**
+	* getFileExt
+	* 获取上传文件名后缀名
+	*/
+	protected function getFileExt(){
+		$file_ext=pathinfo($_FILES['file']['name'],PATHINFO_EXTENSION);
+		return !empty($file_ext)?$file_ext:'';
+	}
+	
     /**
      * getFileName
      * @todo 获取上传后的文件名

@@ -3,6 +3,38 @@
     var server_file='./src/local/';
     var common_php='./src/php/';
     // 当domReady的时候开始初始化
+	/*
+	 如果需要封装函数，可以从以下开始封装
+	 参数：上传图片元素，上传个数，上传单个大小限制，上传文件urlPath，上传类型，分片大小,
+	 上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
+	*/
+	var file_num_limit=100; //上传个数
+	var file_size_limit=200;// 上传文件总数的大小
+	var file_single_size_limit=100; // 上传单个大小限制 
+	var chunk_size=5;//分片大小
+	var mime_types='image/*' // 上传类型
+	var extensions='gif,jpg,jpeg,bmp,png';
+	var auto_up=false;// 自动上传
+	var up_type='local';//上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
+
+	// 上传文件图片描述
+	var up_file_desc='图片';
+	var up_file_unit='张';
+	
+	//正则判断上传的mime_types
+	var mine_arr=mime_types.match(/([a-z]+\/)/g);
+	var mine_len=mine_arr.length;
+	console.log(mine_arr);
+	if($.inArray('image/', mine_arr)!=-1){
+		if(mine_len>1){
+			up_file_desc='图片/文件';
+			up_file_unit='个';	
+		}
+	}else{
+		up_file_desc='文件';
+		up_file_unit='个';	
+	}
+	
     $(function() {
         var $wrap = $('#uploader'),
 
@@ -146,25 +178,23 @@
                 id: '#filePicker',
                 label: '点击选择图片/文件'
             },
-            dnd: '#dndArea',
-            paste: '#uploader',
+            /*dnd: '#dndArea',
+            paste: '#uploader',*/
             swf: static_file+'Uploader.swf',
             chunked: true,
-            chunkSize: 512 * 1024,
+            chunkSize: chunk_size * 1024 * 1024, //5M
             server: server_file+'Upload.php',
             // runtimeOrder: 'flash',
-
-            // accept: {
-            //     title: 'Images',
-            //     extensions: 'gif,jpg,jpeg,bmp,png',
-            //     mimeTypes: 'image/*'
-            // },
-
+             accept: {
+                 extensions: extensions,
+                 mimeTypes: mime_types
+             },
+			auto:auto_up,
             // 禁掉全局的拖拽功能。这样不会出现图片拖进页面的时候，把图片打开。
             disableGlobalDnd: true,
-            fileNumLimit: 300,
-            fileSizeLimit: 200 * 1024 * 1024,    // 200 M
-            fileSingleSizeLimit: 100 * 1024 * 1024    // 50 M
+            fileNumLimit: file_num_limit,
+            fileSizeLimit: file_size_limit * 1024 * 1024,    // 200 M
+            fileSingleSizeLimit: file_single_size_limit * 1024 * 1024    // 100 M
         });
 
         // 拖拽时不接受 js, txt 文件。
@@ -196,22 +226,40 @@
         //     });
         // });
 
-        // 添加“添加文件”的按钮，
-        uploader.addButton({
-            id: '#filePicker2',
-            label: '继续添加'
-        });
-
+        // 上传个数>1, 添加“添加文件”的按钮，
+		if(file_num_limit>1){
+			uploader.addButton({
+				id: '#filePicker2',
+				label: '继续添加'
+			});
+		}
+        
         uploader.on('ready', function() {
             window.uploader = uploader;
         });
+		
 
         //某个文件开始上传前触发，一个文件只会触发一次。发送额外数据
         uploader.on("uploadStart", function(file){
             var file_ext=file.ext;
-            uploader.options.formData = {
-                 'file_ext':file_ext
-            }  
+			// 判断上传方式上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
+			switch(up_type){
+				case 'web_ali':
+					var res=getAilSign(file.ext);
+					console.log(res);
+					uploader.options.formData= {
+						'policy': res.policy,
+						'key':res.dir,
+						'OSSAccessKeyId': res.accessid,
+						'success_action_status' : '200', //让服务端返回200,不然，默认会返回204
+						'callback' : res.callback,
+						'signature': res.signature,
+					};
+				   uploader.options.server=res.host;
+				   break;
+				case 'web_qiniu':
+				   break;
+			}
         });
         
 
@@ -404,23 +452,23 @@
             var text = '', stats;
 
             if ( state === 'ready' ) {
-                text = '选中' + fileCount + '张图片，共' +
+                text = '选中' + fileCount + up_file_unit + up_file_desc + '，共' +
                         WebUploader.formatSize( fileSize ) + '。';
             } else if ( state === 'confirm' ) {
                 stats = uploader.getStats();
                 if ( stats.uploadFailNum ) {
-                    text = '已成功上传' + stats.successNum+ '张照片至XX相册，'+
-                        stats.uploadFailNum + '张照片上传失败，<a class="retry" href="#">重新上传</a>失败图片或<a class="ignore" href="#">忽略</a>'
+                    text = '已成功上传' + stats.successNum+ up_file_unit + up_file_desc+ '，'+
+                        stats.uploadFailNum +  up_file_unit + up_file_desc + '上传失败，<a class="retry" href="#">重新上传</a>失败或<a class="ignore" href="#">忽略</a>'
                 }
 
             } else {
                 stats = uploader.getStats();
-                text = '共' + fileCount + '张（' +
+                text = '共' + fileCount + up_file_unit +'（' +
                         WebUploader.formatSize( fileSize )  +
-                        '），已上传' + stats.successNum + '张';
+                        '），已上传' + stats.successNum + up_file_unit;
 
                 if ( stats.uploadFailNum ) {
-                    text += '，失败' + stats.uploadFailNum + '张';
+                    text += '，失败' + stats.uploadFailNum + up_file_unit;
                 }
             }
 
@@ -527,7 +575,7 @@
 
         };
 
-        uploader.on( 'all', function( type ) {
+        uploader.on( 'all', function( type ,file,response) {
             var stats;
             switch( type ) {
                 case 'uploadFinished':
@@ -541,11 +589,55 @@
                 case 'stopUpload':
                     setState( 'paused' );
                     break;
+				case 'uploadSuccess':
+				// 赋值一些数据传给其他页面或赋值给某个元素
+				//"#" + file.id 是上传文件的容器元素
+					if (response.data != '') {
+						var $file = jQuery("#" + file.id);
+						$file.data("filepath", response.data);
+						$file.data("filename", file.name);
+					}
+					if(auto_up){
+						var $li=$wrap.find('li#'+file.id)
+						var $btns = $('<div class="file-panel">' +
+						'<span class="cancel" onclick="">删除</span></div>').appendTo( $li );
+						$li.on( 'mouseenter', function() {
+							$btns.stop().animate({height: 30});
+						});
 
+						$li.on( 'mouseleave', function() {
+							$btns.stop().animate({height: 0});
+						});
+						//删除
+						$btns.on( 'click', 'span', function() {
+							uploader.removeFile( file );
+						});
+					}
+					
+					console.log(file);
+					console.log(response);
+					break;
             }
         });
-
+		
         uploader.onError = function( code ) {
+			 switch (code) {
+				case "Q_TYPE_DENIED":
+					code = "文件类型错误！";
+					break;
+				case "Q_EXCEED_NUM_LIMIT":
+					code = "最多只能上传" + file_num_limit + '个文件';
+					break;
+				case "F_DUPLICATE":
+					code = "文件重复添加！";
+					break;
+				case "F_EXCEED_SIZE":
+					code = "您需要选择小于"+ file_single_size_limit +"M的文件！";
+					break;
+				case "Q_EXCEED_SIZE_LIMIT":
+					code = "您需要选择总文件大小小于"+ file_size_limit +"M的文件！";
+					break;
+            }
             alert( 'Eroor: ' + code );
         };
 
@@ -553,7 +645,6 @@
             if ( $(this).hasClass( 'disabled' ) ) {
                 return false;
             }
-
             if ( state === 'ready' ) {
                 uploader.upload();
             } else if ( state === 'paused' ) {
@@ -574,10 +665,90 @@
         $upload.addClass( 'state-' + state );
         updateTotalProgress();
 
-        uploader.on("uploadSuccess", function(file,response){
+		// 每一个文件成功打印一次
+        /*uploader.on("uploadSuccess", function(file,response){
             console.log(file);
             console.log(response);
-        });
+        });*/
     });
 
 })( jQuery );
+
+/*如果调用的当前页面是弹窗页面,其他页面获取图片信息,
+  父页面获取返回值调用示例
+layer("url", '弹窗页面标题', {
+	area: ['700px', '400px'],
+	btn: ['确定', '取消'],
+	yes: function (index, layero) {
+		//do something
+
+		var iframeWin          = window[layero.find('iframe')[0]['name']]; //this.iframe.contentWindow;
+		var files_val = iframeWin.get_files(); // html 与 js 文件分开，不确定调用到此函数
+		// 赋值给页面元素值
+		layer.close(index); //如果设定了yes回调，需进行手工关闭
+	}
+});
+*/
+function get_files() 
+{
+	var files = [];
+	var number = jQuery(".filelist li").size();
+	
+	for (var i = 0; i < number; i++) {
+		var file         = new Object();
+		var $file        = jQuery(".filelist li").eq(i);
+		file.filepath    = $file.data("filepath");
+		file.filename    = $file.data("filename");
+		if (file.url == undefined) {
+			continue;
+		} else {
+			files.push(file);
+		}
+	}	
+	return files;
+}
+
+// 获取签名 原阿里云方法 支持IE 
+function getAilSignIe(file_ext)
+{
+    var xmlhttp = null;
+    if (window.XMLHttpRequest)
+    {
+        xmlhttp=new XMLHttpRequest();
+    }
+    else if (window.ActiveXObject)
+    {
+        xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+    }
+
+    if (xmlhttp!=null)
+    {
+        // serverUrl是 用户获取 '签名和Policy' 等信息的应用服务器的URL，请将下面的IP和Port配置为您自己的真实信息。
+        // serverUrl = 'http://88.88.88.88:8888/aliyun-oss-appserver-php/php/get.php'
+        serverUrl = server_file+'Sign.php';
+        xmlhttp.open( "POST", serverUrl, false );
+        xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xmlhttp.send("file_ext="+file_ext);
+        return JSON.parse(xmlhttp.responseText)
+    }
+    else
+    {
+        alert("Your browser does not support XMLHTTP.");
+    }
+}
+
+// 获取签名
+function getAilSign(file_ext) {
+    var serverUrl = server_file+'Sign.php';
+    var result;
+    $.ajaxSettings.async = false; // 同步
+    $.post(serverUrl,{'file_ext':file_ext},function(data){
+        result=data;
+    },'json').error(function(xhr,status,errorInfo){
+        alert(status+':'+errorInfo);
+        return;
+    });
+    $.ajaxSettings.async = true; // 异步
+    return result;
+}
+

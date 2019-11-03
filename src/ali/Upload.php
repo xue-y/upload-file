@@ -55,7 +55,8 @@ class Upload extends Base
         $endpoint = $config["endpoint"];
         $bucket= $config["bucket"];
         $file_temp_name=$_FILES['file']['tmp_name'];//上传的本地文件
-        $file_oss_name=$this->getFilePath($_POST['file_ext']);
+		$file_exe=$this->getFileExt();
+        $file_oss_name=$this->getFilePath($file_exe);
         $chunk_size=$this->getChunk($config['chunkSize']); // 分片大小
 
         //获取对象
@@ -79,6 +80,7 @@ class Upload extends Base
                 $result=$oss_client->multiuploadFile($bucket, $file_oss_name, $file_temp_name, $options);
                 if(!empty($result) &&  !empty($result["body"])){
                     $body=simplexml_load_string($result["body"], 'SimpleXMLElement', LIBXML_NOCDATA);
+					// 具体信息需要查看
                     $this->resultMsg(1,'success',$body);
                 }else{
                     $this->resultMsg(0,'error');

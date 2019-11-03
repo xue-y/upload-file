@@ -1,7 +1,7 @@
 (function( $ ){
-    var static_file='./static/img/';
-    var server_file='./ali/';
-    var common_php='./php/';
+	var static_file='./src/static/img/';
+	var server_file='./src/ali/';
+	var common_php='./src/php/';
 
     // 当domReady的时候开始初始化
     $(function() {
