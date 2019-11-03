@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
-    <title>WebUploader演示</title>
+    <title>WebUploader演示--列表上传</title>
     <link rel="stylesheet" type="text/css" href="src/static/css/webuploader.css" />
     <link rel="stylesheet" type="text/css" href="src/static/css/style.css" />
+	<link href="https://cdn.bootcss.com/layer/2.3/skin/layer.css" rel="stylesheet">
 </head>
 <body>
     <div id="wrapper">
@@ -13,7 +14,7 @@
             <div id="uploader">
                 <div class="queueList">
                     <div id="dndArea" class="placeholder">
-                        <div id="filePicker"></div>
+                        <div class="filePicker"></div>
                         <p>或将文件拖到这里，本地最多上传300个文件，远程上传1个文件</p>
                     </div>
                 </div>
@@ -34,5 +35,6 @@
     <!--<script type="text/javascript" src="src/ali/web_upload.js"></script>--><!-- web 直传阿里云oss-->
     <!--<script type="text/javascript" src="src/ali/php_upload.js"></script>--><!-- 服务端上传阿里云oss-->
     <script type="text/javascript" src="src/local/upload.js"></script><!--本地上传-->
+	<script src="https://cdn.bootcss.com/layer/2.3/layer.js"></script>
 </body>
 </html>

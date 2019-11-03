@@ -178,8 +178,26 @@ class Upload extends Base {
             }
             @fclose($out);
         }
-        $this->resultMsg(1,'ok',$this->filePath);
     }
+	
+	/**
+	* 获取上传后文件信息
+	*/
+	private function getServerFileInfo(){
+		
+		// 每个上传成功都返回这些值   可以将数据写入数据库资源管理
+		// 路径分割符 DIRECTORY_SEPARATOR
+		$this->filePath=str_replace('\\','/',$this->filePath);
+		$info= getimagesize($this->filePath);
+		$data['file_root_path']=$this->config['file_root_dir'].$this->filePath;
+		$data['file_path']=$this->filePath;
+		$data['file_url']=$this->config['file_url_dir'].$this->filePath;
+		$data['file_width']=$info[0];
+		$data['file_height']=$info[1];
+		$data['file_type']=$info['mime'];
+		$data['file_size']=filesize($this->filePath);// 单位字节
+        $this->resultMsg(1,'ok',$data);
+	}
 
     // TODO 执行上传
 	public function exceUpload(){
@@ -190,6 +208,7 @@ class Upload extends Base {
 	    $this->setFilePath($file_exe);
 	    $this->getChunk();
 	    $this->uploadFile();
+		$this->getServerFileInfo($this->filePath);
 	}
 
 }

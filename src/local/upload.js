@@ -14,8 +14,9 @@
 	var chunk_size=5;//分片大小
 	var mime_types='image/*' // 上传类型
 	var extensions='gif,jpg,jpeg,bmp,png';
-	var auto_up=false;// 自动上传
+	var auto_up=true;// 自动上传
 	var up_type='local';//上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
+	var webuploader_pick_text='点击选择图片/文件'; // 上传按钮文本
 
 	// 上传文件图片描述
 	var up_file_desc='图片';
@@ -24,7 +25,6 @@
 	//正则判断上传的mime_types
 	var mine_arr=mime_types.match(/([a-z]+\/)/g);
 	var mine_len=mine_arr.length;
-	console.log(mine_arr);
 	if($.inArray('image/', mine_arr)!=-1){
 		if(mine_len>1){
 			up_file_desc='图片/文件';
@@ -128,15 +128,15 @@
                     window['expressinstallcallback'] = function( state ) {
                         switch(state) {
                             case 'Download.Cancelled':
-                                alert('您取消了更新！')
+                                layer.alert('您取消了更新！')
                                 break;
 
                             case 'Download.Failed':
-                                alert('安装失败')
+                                layer.alert('安装失败')
                                 break;
 
                             default:
-                                alert('安装已成功，请刷新！');
+                                layer.alert('安装已成功，请刷新！');
                                 break;
                         }
                         delete window['expressinstallcallback'];
@@ -168,15 +168,17 @@
 
             return;
         } else if (!WebUploader.Uploader.support()) {
-            alert( 'Web Uploader 不支持您的浏览器！');
+            layer.alert( 'Web Uploader 不支持您的浏览器！');
             return;
         }
 
         // 实例化
         uploader = WebUploader.create({
             pick: {
-                id: '#filePicker',
-                label: '点击选择图片/文件'
+                /*id: '#filePicker',
+                label: '点击选择图片/文件'*/
+				id: $wrap.find('.filePicker'),
+                label: webuploader_pick_text
             },
             /*dnd: '#dndArea',
             paste: '#uploader',*/
@@ -527,7 +529,7 @@
                 case 'finish':
                     stats = uploader.getStats();
                     if ( stats.successNum ) {
-                        alert( '上传成功' );
+                        
                     } else {
                         // 没有成功的图片，重设
                         state = 'done';
@@ -590,17 +592,23 @@
                     setState( 'paused' );
                     break;
 				case 'uploadSuccess':
+				
 				// 赋值一些数据传给其他页面或赋值给某个元素
 				//"#" + file.id 是上传文件的容器元素
-					if (response.data != '') {
+					if (response.data) {
 						var $file = jQuery("#" + file.id);
-						$file.data("filepath", response.data);
-						$file.data("filename", file.name);
+						$file.data("file_root_path", response.data.file_root_path);
+						$file.data("file_path", response.data.file_path);
+						$file.data("file_url", response.data.file_url);
+						$file.data("file_width", response.data.file_width);
+						$file.data("file_height", response.data.file_height);
+						$file.data("file_name", file.name);
+						$file.data("file_type", file.type);
 					}
 					if(auto_up){
 						var $li=$wrap.find('li#'+file.id)
 						var $btns = $('<div class="file-panel">' +
-						'<span class="cancel" onclick="">删除</span></div>').appendTo( $li );
+						'<span class="cancel">删除</span></div>').appendTo( $li );
 						$li.on( 'mouseenter', function() {
 							$btns.stop().animate({height: 30});
 						});
@@ -610,8 +618,30 @@
 						});
 						//删除
 						$btns.on( 'click', 'span', function() {
+							// 执行服务删除文件
+							deleteServerFile(response.data.file_path);
 							uploader.removeFile( file );
 						});
+						// 点击看大图
+						$li.find('.imgWrap img').click(function(){
+							layer.photos({
+								photos: {
+									"start": 0, //初始显示的图片序号，默认0
+									"data": [   //相册包含的图片，数组格式
+										{
+											"src": response.data.file_url, //原图地址
+										}
+									]
+								} //格式见API文档手册页
+								, anim: 5, //0-6的选择，指定弹出图片动画类型，默认随机
+								shadeClose: true,
+								// skin: 'layui-layer-nobg',
+								shade: [0.5, '#000000'],
+								shadeClose: true,
+							})
+						});
+						// 元素赋值
+						//$li.append('<input type="hidden" name="up_img[]" value="'+response.data.file_path+'">');
 					}
 					
 					console.log(file);
@@ -638,7 +668,7 @@
 					code = "您需要选择总文件大小小于"+ file_size_limit +"M的文件！";
 					break;
             }
-            alert( 'Eroor: ' + code );
+            layer.alert( 'Eroor: ' + code );
         };
 
         $upload.on('click', function() {
@@ -659,7 +689,7 @@
         } );
 
         $info.on( 'click', '.ignore', function() {
-            alert( 'todo' );
+            layer.alert( 'todo' );
         } );
 
         $upload.addClass( 'state-' + state );
@@ -671,6 +701,60 @@
             console.log(response);
         });*/
     });
+	
+	
+	// 获取签名 原阿里云方法 支持IE 
+	function getAilSignIe(file_ext)
+	{
+		var xmlhttp = null;
+		if (window.XMLHttpRequest)
+		{
+			xmlhttp=new XMLHttpRequest();
+		}
+		else if (window.ActiveXObject)
+		{
+			xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+		}
+
+		if (xmlhttp!=null)
+		{
+			// serverUrl是 用户获取 '签名和Policy' 等信息的应用服务器的URL，请将下面的IP和Port配置为您自己的真实信息。
+			// serverUrl = 'http://88.88.88.88:8888/aliyun-oss-appserver-php/php/get.php'
+			serverUrl = server_file+'Sign.php';
+			xmlhttp.open( "POST", serverUrl, false );
+			xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xmlhttp.send("file_ext="+file_ext);
+			return JSON.parse(xmlhttp.responseText)
+		}
+		else
+		{
+			layer.alert("Your browser does not support XMLHTTP.");
+		}
+	}
+
+	// 获取签名
+	function getAilSign(file_ext) {
+		var serverUrl = server_file+'Sign.php';
+		var result;
+		$.ajaxSettings.async = false; // 同步
+		$.post(serverUrl,{'file_ext':file_ext},function(data){
+			result=data;
+		},'json').error(function(xhr,status,errorInfo){
+			layer.alert(status+':'+errorInfo);
+			return;
+		});
+		$.ajaxSettings.async = true; // 异步
+		return result;
+	}
+
+	function deleteServerFile(file_path){
+		var serverUrl = server_file+'DeleteFile.php';
+		$.post(serverUrl,{'file_path':file_path},function(data){
+			console.log(data);
+		}).error(function(xhr,status,errorInfo){
+			console.log(status+':'+errorInfo);
+		});
+	}
 
 })( jQuery );
 
@@ -697,8 +781,15 @@ function get_files()
 	for (var i = 0; i < number; i++) {
 		var file         = new Object();
 		var $file        = jQuery(".filelist li").eq(i);
-		file.filepath    = $file.data("filepath");
-		file.filename    = $file.data("filename");
+		
+		file.file_root_path    = $file.data("file_root_path");
+		file.file_path    = $file.data("file_path");
+		file.file_url    = $file.data("file_url");
+		file.file_width    = $file.data("file_width");
+		file.file_height    = $file.data("file_height");
+		file.file_name    = $file.data("file_name");
+		file.file_type    = $file.data("file_type");
+		
 		if (file.url == undefined) {
 			continue;
 		} else {
@@ -706,49 +797,5 @@ function get_files()
 		}
 	}	
 	return files;
-}
-
-// 获取签名 原阿里云方法 支持IE 
-function getAilSignIe(file_ext)
-{
-    var xmlhttp = null;
-    if (window.XMLHttpRequest)
-    {
-        xmlhttp=new XMLHttpRequest();
-    }
-    else if (window.ActiveXObject)
-    {
-        xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
-    }
-
-    if (xmlhttp!=null)
-    {
-        // serverUrl是 用户获取 '签名和Policy' 等信息的应用服务器的URL，请将下面的IP和Port配置为您自己的真实信息。
-        // serverUrl = 'http://88.88.88.88:8888/aliyun-oss-appserver-php/php/get.php'
-        serverUrl = server_file+'Sign.php';
-        xmlhttp.open( "POST", serverUrl, false );
-        xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        xmlhttp.send("file_ext="+file_ext);
-        return JSON.parse(xmlhttp.responseText)
-    }
-    else
-    {
-        alert("Your browser does not support XMLHTTP.");
-    }
-}
-
-// 获取签名
-function getAilSign(file_ext) {
-    var serverUrl = server_file+'Sign.php';
-    var result;
-    $.ajaxSettings.async = false; // 同步
-    $.post(serverUrl,{'file_ext':file_ext},function(data){
-        result=data;
-    },'json').error(function(xhr,status,errorInfo){
-        alert(status+':'+errorInfo);
-        return;
-    });
-    $.ajaxSettings.async = true; // 异步
-    return result;
 }
 

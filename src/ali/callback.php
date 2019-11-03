@@ -61,6 +61,7 @@ $ok = openssl_verify($authStr, $authorization, $pubKey, OPENSSL_ALGO_MD5);
 if ($ok == 1)
 {
     header("Content-Type: application/json");
+	//$body 根据具体内容从新赋值返回数组
     $data=['code'=>1,'msg'=>'ok','data'=>$body];
     echo json_encode($data);
 }

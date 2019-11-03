@@ -14,13 +14,14 @@ class Base
     /**
      * init
      * @todo 初始化
-     * @param string $type 配置类型
+     * @param string $type 配置类型/名称
      * @return mixed
      */
     protected function init($type='')
     {
         $config=require "config.php";
         @set_time_limit($config['setTimeLimit']);
+		date_default_timezone_set($config['date_time_zone']);// 设置时间时区
         return isset($config[$type])?$config[$type]:$config;
     }
 
@@ -101,6 +102,14 @@ class Base
             'msg'=>$msg,
             'data'=>$data
         ];
-        die(json_encode($result));
+        die(json_encode($result,JSON_UNESCAPED_UNICODE));
     }
+	
+	/**
+	* 记录错误日志
+	*/
+	protected function errorLog($msg){
+		$info='['.date('Y-m-d H:i:s').'] '.$msg.PHP_EOL;
+		error_log($info,3,$this->init('log'));
+	}
 }

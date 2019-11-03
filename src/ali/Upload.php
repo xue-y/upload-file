@@ -42,8 +42,8 @@ class Upload extends Base
     /**
      * exceUpload
      * @todo 执行上传
-     * @url https://help.aliyun.com/document_detail/88473.html?spm=a2c4g.11186623.6.973.20d25618YKo78Y
-     * @url https://help.aliyun.com/document_detail/88477.html?spm=a2c4g.11186623.6.975.487022caGEesqr
+     * @url https://help.aliyun.com/document_detail/88473.html?spm=a2c4g.11186623.6.973.20d25618YKo78Y 简单上传
+     * @url https://help.aliyun.com/document_detail/88477.html?spm=a2c4g.11186623.6.975.487022caGEesqr 分片上传
      * @return mixed|string
      */
     public function exceUpload(){
