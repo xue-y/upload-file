@@ -641,9 +641,8 @@
 							})
 						});
 						// 元素赋值
-						//$li.append('<input type="hidden" name="up_img[]" value="'+response.data.file_path+'">');
+						$li.append('<input type="hidden" name="up_img[]" value="'+response.data.file_path+'">');
 					}
-					
 					console.log(file);
 					console.log(response);
 					break;
@@ -781,7 +780,6 @@ function get_files()
 	for (var i = 0; i < number; i++) {
 		var file         = new Object();
 		var $file        = jQuery(".filelist li").eq(i);
-		
 		file.file_root_path    = $file.data("file_root_path");
 		file.file_path    = $file.data("file_path");
 		file.file_url    = $file.data("file_url");
@@ -790,7 +788,7 @@ function get_files()
 		file.file_name    = $file.data("file_name");
 		file.file_type    = $file.data("file_type");
 		
-		if (file.url == undefined) {
+		if (file.file_url == undefined) {
 			continue;
 		} else {
 			files.push(file);

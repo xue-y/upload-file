@@ -28,7 +28,7 @@ class Sign extends Base {
         $dir=$this->getUploadDir($time).DIRECTORY_SEPARATOR.$this->getFileName($time,$file_ext);
 
         $callback_param = array('callbackUrl'=>$config['callbackUrl'],
-                                'callbackBody'=>'filename=${object}&size=${size}&mimeType=${mimeType}&height=${imageInfo.height}&width=${imageInfo.width}',
+                                'callbackBody'=>'filename=${object}&size=${size}&mime=${mimeType}&height=${imageInfo.height}&width=${imageInfo.width}',
                                 'callbackBodyType'=>"application/x-www-form-urlencoded");
         $callback_string = json_encode($callback_param);
 
