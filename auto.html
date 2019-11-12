@@ -22,8 +22,13 @@
     </div>
     <script type="text/javascript" src="src/static/js/jquery.js"></script>
     <script type="text/javascript" src="src/static/js/webuploader.js"></script>
-    <script type="text/javascript" src="src/local/upload.js"></script><!--本地上传-->
+    <script type="text/javascript" src="src/static/js/upload.js"></script><!--本地上传-->
 	<script src="https://cdn.bootcss.com/layer/2.3/layer.js"></script>
-	
+	<script type="text/javascript">
+        var option={
+            'auto_up':true
+        };
+        upfile('#uploader',option)// 上传本地
+    </script>
 </body>
 </html>

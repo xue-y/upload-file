@@ -13,7 +13,6 @@ class Sign extends Base {
     private function getIso8601($time) {
         $dtStr = date("c", $time);
         $mydatetime = new DateTime($dtStr);
-
         $expiration = $mydatetime->format(DateTime::ISO8601);
         $pos = strpos($expiration, '+');
         $expiration = substr($expiration, 0, $pos);
@@ -26,9 +25,8 @@ class Sign extends Base {
         // 可以根据文件类型，创建文件夹  image plan ,需要前端传参 ; $dir用户上传文件时指定的文件名
         $time=time();
         $dir=$this->getUploadDir($time).DIRECTORY_SEPARATOR.$this->getFileName($time,$file_ext);
-
         $callback_param = array('callbackUrl'=>$config['callbackUrl'],
-                                'callbackBody'=>'filename=${object}&size=${size}&mime=${mimeType}&height=${imageInfo.height}&width=${imageInfo.width}',
+                                'callbackBody'=>$this->getReturnBody(),
                                 'callbackBodyType'=>"application/x-www-form-urlencoded");
         $callback_string = json_encode($callback_param);
 
@@ -61,7 +59,16 @@ class Sign extends Base {
         $response['expire'] = $end;
         $response['callback'] = $base64_callback_body;
         $response['dir'] = $dir;  // 这个参数是设置用户上传文件时指定的前缀。
-        die(json_encode($response));
+		$this->resultMsg(1,'success',$response);
+    }
+
+    /**
+     * getReturnBody
+     * @url  https://help.aliyun.com/document_detail/31989.html?spm=5176.11065259.1996646101.searchclickresult.99ca278d7Sprfj&aly_as=f2lOoVxW
+     * @return string
+     */
+    private function  getReturnBody(){
+       return 'file_path=${object}&file_size=${size}&file_height=${imageInfo.height}&file_width=${imageInfo.width}';
     }
 }
 $sing=new Sign();

@@ -32,9 +32,21 @@
     </div>
     <script type="text/javascript" src="src/static/js/jquery.js"></script>
     <script type="text/javascript" src="src/static/js/webuploader.js"></script>
-    <!--<script type="text/javascript" src="src/ali/web_upload.js"></script>--><!-- web 直传阿里云oss-->
-    <!--<script type="text/javascript" src="src/ali/php_upload.js"></script>--><!-- 服务端上传阿里云oss-->
-    <script type="text/javascript" src="src/local/upload.js"></script><!--本地上传-->
+    <script type="text/javascript" src="src/static/js/upload.js"></script>
 	<script src="https://cdn.bootcss.com/layer/2.3/layer.js"></script>
+    <script type="text/javascript">
+
+      upfile('#uploader',{})// 上传本地
+          /*var option={
+              'up_type':'web_ali',
+              'auto_up':false
+          };
+        upfile('#uploader',option)// web 直传阿里云*/
+        /*var option={
+          'up_type':'php_ali',
+          'auto_up':false
+       };
+       upfile('#uploader',option)// 服务端上传阿里云*/
+    </script>
 </body>
 </html>
