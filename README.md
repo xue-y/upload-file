@@ -1,5 +1,7 @@
 # upload-file
-webuploader 上传文件到本地、web 直传阿里云、服务端上传阿里云  
+webuploader 上传文件到本地    
+web 直传阿里云、服务端上传阿里云    
+web 直传七牛云、服务端上传七牛云    
 
 #### 文件说明 
     src   
