@@ -263,7 +263,7 @@ function upfile(id_ele,option) {
                     break;
                 case 'web_qiniu':
                     //https://segmentfault.com/a/1190000002781331
-                    var res=getAilSign(file.ext,get_sign_url);
+                    var res=getQiniuSign(get_sign_url);
                     uploader.options.formData= {
                         'token':res.token
                     };
@@ -739,11 +739,24 @@ function getAilSignIe(file_ext,serverUrl)
     }
 }
 
-// 获取签名
+// 获取阿里云签名
 function getAilSign(file_ext,serverUrl) {
     var result;
     $.ajaxSettings.async = false; // 同步
     $.post(serverUrl,{'file_ext':file_ext},function(data){
+        result=data;
+    },'json').error(function(xhr,status,errorInfo){
+        layer.alert(status+':'+errorInfo);
+        return;
+    });
+    $.ajaxSettings.async = true; // 异步
+    return result;
+}
+// 获取七牛云签名
+function getQiniuSign(serverUrl){
+	var result;
+    $.ajaxSettings.async = false; // 同步
+    $.post(serverUrl,function(data){
         result=data;
     },'json').error(function(xhr,status,errorInfo){
         layer.alert(status+':'+errorInfo);
