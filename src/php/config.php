@@ -7,7 +7,7 @@
  */
 return [
     'setTimeLimit'=>300,// 脚本执行时间
-	'log'=>'../error.log',
+	'log'=>'../error.log', // 日志文件要有写的权限
 	'date_time_zone'=>'PRC',
     'local'=>[
        'uploadTmpDir'=>'upload_tmp',// 此目录是相对调用页面的目录创建文件夹
@@ -21,12 +21,13 @@ return [
         'accessKeySecret'=>'accessKeySecret',
         'remoteHost'=>'https://localhost', // 上传服务器域名
         'callbackUrl'=>'http://localhost/Callback.php',
-        'policyExpire'=>30,
-        'maxFileSize'=>10, // 最大上传文件大小 100MB
+        'policyExpire'=>300, // 请求签名超时
+        'maxFileSize'=>100, // 最大上传文件大小 100MB
         'chunkSize'=>5,// 分片大小MB
         'endpoint'=>'',
         'bucket'=>'',
         'protocol'=>'https',
+        'extensions'=>'jpg,png,gif'
     ],
     'qiniu'=>[
         'accessKey'=>'accessKey',
@@ -34,5 +35,8 @@ return [
 		'remoteHost'=>'http://localhost', // 上传服务器域名
         'bucket'=>'bucket',
         'callbackUrl'=>'http://localhost/Callback.php',
+        'policyExpire'=>3600, // 请求签名超时
+        'maxFileSize'=>100, // 最大上传文件大小 100MB
+        'extensions'=>'jpg,png,gif'
     ]
 ];

@@ -775,7 +775,7 @@ function deleteServerFile(file_path,serverUrl){
     });
 }
 
-/*如果调用的当前页面是弹窗页面,其他页面获取图片信息,
+/*如果调用的当前页面是弹窗页面,其父页面获取图片信息,
   父页面获取返回值调用示例
 layer("url", '弹窗页面标题', {
 	area: ['700px', '400px'],

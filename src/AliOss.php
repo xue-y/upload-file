@@ -15,6 +15,14 @@ use DateTime;
 
 class AliOss extends Base
 {
+    private $config; // 配置
+    /**
+     * Upload constructor.
+     */
+    public function __construct($config=[])
+    {
+        $this->config=array_merge($this->init('ali'),$config);
+    }
     /**
      * getIso8601
      * @title 获取时间
@@ -37,7 +45,7 @@ class AliOss extends Base
      * @return string
      */
     private function  getReturnBody(){
-        return 'file_path=${object}&file_size=${size}&file_height=${imageInfo.height}&file_width=${imageInfo.width}';
+        return 'file_path=${object}&file_height=${imageInfo.height}&file_width=${imageInfo.width}&file_type=&{mimeType}&file_size=${size}';
     }
 
     /**
@@ -45,39 +53,38 @@ class AliOss extends Base
      * @title获取签名
      */
     public function getSign(){
-        $config=$this->init('ali');
         $file_ext=isset($_POST['file_ext'])?$_POST['file_ext']:'';
         // 可以根据文件类型，创建文件夹  image plan ,需要前端传参 ; $dir用户上传文件时指定的文件名
         $time=time();
         $dir=$this->getUploadDir($time).DIRECTORY_SEPARATOR.$this->getFileName($time,$file_ext);
-        $callback_param = array('callbackUrl'=>$config['callbackUrl'],
+        $callback_param = array('callbackUrl'=>$this->config['callbackUrl'],
                                 'callbackBody'=>$this->getReturnBody(),
                                 'callbackBodyType'=>"application/x-www-form-urlencoded");
         $callback_string = json_encode($callback_param);
 
         $base64_callback_body = base64_encode($callback_string);
-        $expire = $config['policyExpire'];  //设置该policy超时时间是10s. 即这个policy过了这个有效时间，将不能访问。
+        $expire = $this->config['policyExpire'];  //设置该policy超时时间是10s. 即这个policy过了这个有效时间，将不能访问。
         $end = $time + $expire;
         $expiration = $this->getIso8601($end);
-        $config['maxFileSize']*=1024*1024;
+        $max_file_size=$this->mbBytes($this->config['maxFileSize']);// MB 转 字节
 
         //最大文件大小.用户可以自己设置
-        $condition = array(0=>'content-length-range', 1=>0, 2=>$config['maxFileSize']);
+        $condition = array(0=>'content-length-range', 1=>0, 2=>$max_file_size);
         $conditions[] = $condition;
 
         // 表示用户上传的数据，必须是以$dir开始，不然上传会失败，这一步不是必须项，只是为了安全起见，防止用户通过policy上传到别人的目录。
-        $start = array(0=>'starts-with', 1=>$config['accessKeySecret'], 2=>$dir);
+        $start = array(0=>'starts-with', 1=>$this->config['accessKeySecret'], 2=>$dir);
         $conditions[] = $start;
 
         $arr = array('expiration'=>$expiration,'conditions'=>$conditions);
         $policy = json_encode($arr);
         $base64_policy = base64_encode($policy);
         $string_to_sign = $base64_policy;
-        $signature = base64_encode(hash_hmac('sha1', $string_to_sign, $config['accessKeySecret'], true));
+        $signature = base64_encode(hash_hmac('sha1', $string_to_sign, $this->config['accessKeySecret'], true));
 
         $response = array();
-        $response['accessid'] = $config['accessKeyId'];
-        $response['host'] = $config['remoteHost'];
+        $response['accessid'] = $this->config['accessKeyId'];
+        $response['host'] = $this->config['remoteHost'];
         $response['policy'] = $base64_policy;
         $response['signature'] = $signature;
         $response['expire'] = $end;
@@ -173,21 +180,6 @@ class AliOss extends Base
         return $upload_dir.DIRECTORY_SEPARATOR.$this->getFileName($time,$file_ext);
     }
 
-    // TODO 分片
-    private function getChunk($chunk_size){
-        return $chunk_size*1024*1024;// MB
-    }
-
-    // TODO 验证文件
-    private function vailFile(){
-        $this->fileError();
-        // 验证文件大小
-        // 验证文件允许的类型
-        if(empty($_FILES['file']['tmp_name'])){
-            $this->resultMsg(0,'您没有上传文件');
-        }
-    }
-
     /**
      * exceUpload
      * @title 执行上传
@@ -196,17 +188,16 @@ class AliOss extends Base
      * @return mixed|string
      */
     public function exceUpload(){
-        $this->vailFile();
+        $this->vailFile($this->config);
         // 取得配置项数据
-        $config=$this->init('ali');
-        $accessKeyId = $config["accessKeyId"];
-        $accessKeySecret = $config["accessKeySecret"];
-        $endpoint = $config["endpoint"];
-        $bucket= $config["bucket"];
+        $accessKeyId = $this->config["accessKeyId"];
+        $accessKeySecret = $this->config["accessKeySecret"];
+        $endpoint = $this->config["endpoint"];
+        $bucket= $this->config["bucket"];
         $file_temp_name=$_FILES['file']['tmp_name'];//上传的本地文件
         $file_exe=$this->getFileExt();
         $file_oss_name=$this->getFilePath($file_exe);
-        $chunk_size=$this->getChunk($config['chunkSize']); // 分片大小
+        $chunk_size=$this->mbBytes($this->config['chunkSize']); // 分片大小
 
         //获取对象
         $oss_client = new OssClient($accessKeyId,$accessKeySecret,$endpoint);
@@ -223,7 +214,7 @@ class AliOss extends Base
         }else{
             $options = array(
                 OssClient::OSS_CHECK_MD5 => true,
-                OssClient::OSS_PART_SIZE => $config['chunkSize'],
+                OssClient::OSS_PART_SIZE => $this->config['chunkSize'],
             );
             try{
                 $result=$oss_client->multiuploadFile($bucket, $file_oss_name, $file_temp_name, $options);
@@ -247,12 +238,11 @@ class AliOss extends Base
     public function delFile(){
         $file_path=$_POST['file_path'];
         //取得配置参数
-        $config=$this->init('ali');
-        $accessKeyId = $config["accessKeyId"];
-        $accessKeySecret = $config["accessKeySecret"];
+        $accessKeyId = $this->config["accessKeyId"];
+        $accessKeySecret = $this->config["accessKeySecret"];
         // Endpoint以杭州为例，其它Region请按实际情况填写。 -internal 内网
-        $endpoint =str_replace('-internal','',$config["endpoint"]);
-        $bucket= $config["bucket"];
+        $endpoint =str_replace('-internal','',$this->config["endpoint"]);
+        $bucket= $this->config["bucket"];
 
         // Bucket 域名
         /*$protocol=$config["protocol"];
@@ -264,12 +254,12 @@ class AliOss extends Base
                 foreach ($file_path as $k=>$v){
                     // 去除域名
                     //$object[$k]=str_replace(array($old_http_url,$http_url),'',$v);
-                    $object[$k]=str_replace($config['remoteHost'],'',$v);
+                    $object[$k]=str_replace($this->config['remoteHost'],'',$v);
                 }
                 $is_del=$ossClient->deleteObjects($bucket,$object);
             }else{
                 //$object=str_replace($http_url,'',$file_path);
-                $object=str_replace($config['remoteHost'],'',$file_path);
+                $object=str_replace($this->config['remoteHost'],'',$file_path);
                 $is_del=$ossClient->deleteObject($bucket,$object);
             }
             if($is_del){

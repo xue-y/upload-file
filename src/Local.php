@@ -25,10 +25,10 @@ class Local extends Base
     /**
      * Upload constructor.
      */
-    public function __construct()
+    public function __construct($config=[])
     {
-        $this->config=$this->init('local');
-        $this->maxFileAge=$this->config['maxFileAge']*5;
+        $this->config=array_merge($this->init('local'),$config);
+        $this->maxFileAge=$this->config['maxFileAge'];
         $this->time=time();
     }
 

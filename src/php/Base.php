@@ -89,6 +89,38 @@ class Base
         }
     }
 
+    // TODO Mb 转 字节
+    public function mbBytes(int $size){
+        return $size*1024*1024;// MB
+    }
+
+    // TODO 验证文件
+    public function vailFile(array $config){
+
+        if(empty($_FILES['file']['tmp_name'])){
+            $this->resultMsg(0,'您没有上传文件');
+        }
+
+        $this->fileError();
+
+        // 验证文件大小
+        $max_file_size=$this->mbBytes($config['maxFileSize']);
+        if(isset($_FILES['file']['size'])){
+            if($_FILES['file']['size']===0){
+                $this->resultMsg(0,'您上传的文件size为0');
+            }else if($_FILES['file']['size']<$max_file_size){
+                $this->resultMsg(0,'您上传的文件超过最大限制'.$config['maxFileSize'].'MB');
+            }
+        }
+
+        // 验证文件允许的类型--- 判断后缀名
+        $extensions=explode(',',$config['extensions']);
+        $file_ext=pathinfo($_FILES['file']['name'],PATHINFO_EXTENSION);
+        if(in_array($file_ext,$extensions)){
+            $this->resultMsg(0,'您上传的文件后缀不允许');
+        }
+    }
+
     /**
      * resultMsg
      * @todo 返回信息
