@@ -6,3 +6,4 @@ vendor/*
 */ali/
 */local/
 */qiniu/
+src/examples/upload/

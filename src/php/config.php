@@ -13,6 +13,8 @@ return [
        'uploadTmpDir'=>'upload_tmp',// 此目录是相对调用页面的目录创建文件夹
        'uploadDir'=>'upload',// 此目录是相对调用页面的目录创建文件夹
        'maxFileAge'=>3600,  // Temp file age in seconds
+       'maxFileSize'=>100,
+       'extensions'=>'jpg,png,gif,txt',
 	   'file_root_dir'=>'F:/phpStud/PHPTutorial/WWW/test/upload-file/src/examples/',// 文件存放目录
 	   'file_url_dir'=>'http://localhost/test/upload-file/src/examples/' // 文件访问域名路径
     ],

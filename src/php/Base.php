@@ -108,7 +108,7 @@ class Base
         if(isset($_FILES['file']['size'])){
             if($_FILES['file']['size']===0){
                 $this->resultMsg(0,'您上传的文件size为0');
-            }else if($_FILES['file']['size']<$max_file_size){
+            }else if($_FILES['file']['size']>$max_file_size){
                 $this->resultMsg(0,'您上传的文件超过最大限制'.$config['maxFileSize'].'MB');
             }
         }
@@ -116,7 +116,7 @@ class Base
         // 验证文件允许的类型--- 判断后缀名
         $extensions=explode(',',$config['extensions']);
         $file_ext=pathinfo($_FILES['file']['name'],PATHINFO_EXTENSION);
-        if(in_array($file_ext,$extensions)){
+        if(!in_array($file_ext,$extensions)){
             $this->resultMsg(0,'您上传的文件后缀不允许');
         }
     }

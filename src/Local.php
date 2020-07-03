@@ -60,7 +60,13 @@ class Local extends Base
             $this->resultMsg(0,$this->uploadTmpDir.'不可写');
         }
         // Create target dir，如果需要可以定义按照文件类型分文件夹
-        $this->uploadDir=$this->config['uploadDir'].DIRECTORY_SEPARATOR.$this->getUploadDir($this->time);
+        $file_type=explode('/',$_FILES['file']['type']);
+        if(!isset($file_type[0]) || empty($file_type[0])){
+            $file_type_dir="unknown";
+        }else{
+            $file_type_dir=$file_type[0];
+        }
+        $this->uploadDir=$this->config['uploadDir'].DIRECTORY_SEPARATOR.$file_type_dir.DIRECTORY_SEPARATOR.$this->getUploadDir($this->time);
         if (!file_exists($this->uploadDir)) {
             @mkdir($this->uploadDir,0755,true);
         }
@@ -82,16 +88,6 @@ class Local extends Base
     private function getChunk(){
         $this->chunk = isset($_POST["chunk"]) ? intval($_POST["chunk"]) : 0;
         $this->chunks = isset($_POST["chunks"]) ? intval($_POST["chunks"]) : 1;
-    }
-
-    // TODO 验证文件
-    private function vailFile(){
-        $this->fileError();
-        // 验证文件大小
-        // 验证文件允许的类型
-        if(empty($_FILES['file']['tmp_name'])){
-            $this->resultMsg(0,'您没有上传文件');
-        }
     }
 
     // TODO 上传文件
@@ -189,9 +185,11 @@ class Local extends Base
         // 每个上传成功都返回这些值   可以将数据写入数据库资源管理
         // 路径分割符 DIRECTORY_SEPARATOR
         $this->filePath=str_replace('\\','/',$this->filePath);
+        $file_root_path=$this->config['file_root_dir'].$this->filePath;
+        $file_root_path=str_replace('\\','/',$file_root_path);
         $info= getimagesize($this->filePath);
         $data['file_path']=$this->filePath;
-        $data['file_root_path']=$this->config['file_root_dir'].$this->filePath;
+        $data['file_root_path']=$file_root_path;
         $data['file_url']=$this->config['file_url_dir'].$this->filePath;
         $data['file_width']=$info[0];
         $data['file_height']=$info[1];
@@ -203,7 +201,7 @@ class Local extends Base
     // TODO 执行上传
     public function exceUpload(){
         $this->setHead();
-        $this->vailFile();
+        $this->vailFile($this->config);
         $this->setUploadPath();
         $file_exe=$this->getFileExt();
         $this->setFilePath($file_exe);

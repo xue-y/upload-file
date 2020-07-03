@@ -8,22 +8,30 @@ function upfile(id_ele,option) {
      参数：上传图片元素，上传个数，上传单个大小限制，上传文件urlPath，上传类型，分片大小,
      上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
     */
-    var file_num_limit=option.file_num_limit || 100; //上传个数
+    var file_num_limit=option.file_num_limit || 20; //上传个数
     var file_size_limit=option.file_size_limit || 200;// 上传文件总数的大小
     var file_single_size_limit=option.file_single_size_limit||100; // 上传单个大小限制
     var chunk_size=option.chunk_size || 5;//分片大小
     var mime_types=option.mime_types || 'image/*';// 上传类型
     var extensions=option.extensions || 'gif,jpg,jpeg,bmp,png';
-    var auto_up=option.auto_up===true?option.auto_up:false;// 自动上传
+    //var auto_up=option.auto_up===true?option.auto_up:false;// 自动上传
     var up_type=option.up_type || 'local';//上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
     var webuploader_pick_text=option.webuploader_pick_text || '点击选择图片/文件'; // 上传按钮文本
     var del_file_url=option.del_file_url || 'src/examples/del_local_file.php';
     var up_file_url=option.up_file_url || 'src/examples/up_local_file.php';
     var get_sign_url=option.get_sign_url || '';
-
+    var up_field_name=option.up_field_name || 'up_file';
+console.log(mime_types);
     // 上传文件图片描述
     var up_file_desc='图片';
     var up_file_unit='张';
+
+    // 拖拽 黏图 功能， 页面只有一个元素，否则进入多个队列
+    if(option.auto_up===true){
+        var auto_up=true,dnd=false,paste=false;
+    }else{
+        var auto_up=false,dnd="#click_upload",paste=document.body;
+    }
 
     //正则判断上传的mime_types
     var mine_arr=mime_types.match(/([a-z]+\/)/g);
@@ -183,8 +191,8 @@ function upfile(id_ele,option) {
                 id: $wrap.find('.filePicker'),
                 label: webuploader_pick_text
             },
-            /*dnd: '#dndArea',
-            paste: '#uploader',*/
+            dnd: dnd,
+            paste: paste,
             swf: static_file+'Uploader.swf',
             chunked: true,
             chunkSize: chunk_size * 1024 * 1024, //5M
@@ -196,7 +204,7 @@ function upfile(id_ele,option) {
             },
             auto:auto_up,
             // 禁掉全局的拖拽功能。这样不会出现图片拖进页面的时候，把图片打开。
-            disableGlobalDnd: true,
+            disableGlobalDnd: false,
             fileNumLimit: file_num_limit,
             fileSizeLimit: file_size_limit * 1024 * 1024,    // 200 M
             fileSingleSizeLimit: file_single_size_limit * 1024 * 1024    // 100 M
@@ -231,8 +239,8 @@ function upfile(id_ele,option) {
         //     });
         // });
 
-        // 上传个数>1, 添加“添加文件”的按钮，
-        if(file_num_limit>1){
+        // 不是自动上传时, 添加“添加文件”的按钮，
+        if(!auto_up){
             uploader.addButton({
                 id: '#filePicker2',
                 label: '继续添加'
@@ -353,7 +361,6 @@ function upfile(id_ele,option) {
 
                 // 成功
                 if ( cur === 'error' || cur === 'invalid' ) {
-                    console.log( file.statusText );
                     showError( file.statusText );
                     percentages[ file.id ][ 1 ] = 1;
                 } else if ( cur === 'interrupt' ) {
@@ -364,7 +371,7 @@ function upfile(id_ele,option) {
                     $info.remove();
                     $prgress.css('display', 'block');
                 } else if ( cur === 'complete' ) {
-                    $li.append( '<span class="success"></span>' );
+                    // $li.append( '<span class="success"></span>' );
                 }
 
                 $li.removeClass( 'state-' + prev ).addClass( 'state-' + cur );
@@ -603,38 +610,47 @@ function upfile(id_ele,option) {
 
                     // 赋值一些数据传给其他页面或赋值给某个元素
                     //"#" + file.id 是上传文件的容器元素
+                    var $li=$wrap.find('li#'+file.id);
                     if (response.data) {
-                        var $file = jQuery("#" + file.id);
-                        $file.data("file_root_path", response.data.file_root_path);
-                        $file.data("file_path", response.data.file_path);
-                        $file.data("file_url", response.data.file_url);
-                        $file.data("file_width", response.data.file_width);
-                        $file.data("file_height", response.data.file_height);
-                        $file.data("file_name", file.name);
-                        $file.data("file_type", file.type);
+                        $li.data("file_root_path", response.data.file_root_path);
+                        $li.data("file_path", response.data.file_path);
+                        $li.data("file_url", response.data.file_url);
+                        $li.data("file_width", response.data.file_width);
+                        $li.data("file_height", response.data.file_height);
+                        $li.data("file_name", file.name);
+                        $li.data("file_type", file.type);
                     }
-                    if(auto_up){
-                        var $li=$wrap.find('li#'+file.id)
-                        var $btns = $('<div class="file-panel">' +
-                            '<span class="cancel">删除</span></div>').appendTo( $li );
-                        $li.on( 'mouseenter', function() {
-                            $btns.stop().animate({height: 30});
-                        });
 
-                        $li.on( 'mouseleave', function() {
-                            $btns.stop().animate({height: 0});
-                        });
-                        //删除
-                        $btns.on( 'click', 'span', function() {
+                    var $btns = $('<div class="file-panel">' +
+                        '<span class="cancel">删除</span></div>').appendTo( $li );
+
+                    $li.on( 'mouseenter', function() {
+                        $btns.stop().animate({height: 30});
+                    });
+
+                    $li.on( 'mouseleave', function() {
+                        $btns.stop().animate({height: 0});
+                    });
+                    //删除
+                    $btns.on( 'click', 'span', function() {
+                        if(response.code==1){
                             // 执行服务删除文件
                             deleteServerFile(response.data.file_path,del_file_url);
-                            uploader.removeFile( file );
+                        }
+                        uploader.removeFile( file );
+                    });
+
+                    if(response.code==1){
+                        // 点击看大图
+                        layer.photos({
+                            photos: '.imgWrap'
+                            ,anim: 5//0-6的选择，指定弹出图片动画类型，默认随机（请注意，3.0之前的版本用shift参数）
                         });
                         // 点击看大图
-                        $li.find('.imgWrap img').click(function(){
+                        /*$li.find('.imgWrap img').click(function(){
                             layer.photos({
                                 photos: {
-                                    "start": 0, //初始显示的图片序号，默认0
+                                  //  "start": 0, //初始显示的图片序号，默认0
                                     "data": [   //相册包含的图片，数组格式
                                         {
                                             "src": response.data.file_url, //原图地址
@@ -647,12 +663,16 @@ function upfile(id_ele,option) {
                                 shade: [0.5, '#000000'],
                                 shadeClose: true,
                             })
-                        });
+                        });*/
                         // 元素赋值
-                       // $li.append('<input type="hidden" name="up_img[]" value="'+response.data.file_path+'">');
+                        $li.append('<input type="hidden" name="'+option.up_field_name+'[]" value="'+response.data.file_url+'">');
+                        $li.append( '<span class="success"></span>' );
+                        $li.find('.progress').css('display','none');
+
+
+                    }else{
+                        $li.append( '<p class="error">'+response.msg+'</p>' );
                     }
-                    console.log(file);
-                    console.log(response);
                     break;
             }
         });
@@ -754,7 +774,7 @@ function getAilSign(file_ext,serverUrl) {
 }
 // 获取七牛云签名
 function getQiniuSign(serverUrl){
-	var result;
+    var result;
     $.ajaxSettings.async = false; // 同步
     $.post(serverUrl,function(data){
         result=data;
@@ -790,28 +810,27 @@ layer("url", '弹窗页面标题', {
 	}
 });
 */
-function get_files() 
+function get_files()
 {
-	var files = [];
-	var number = jQuery(".filelist li").size();
-	
-	for (var i = 0; i < number; i++) {
-		var file         = new Object();
-		var $file        = jQuery(".filelist li").eq(i);
-		file.file_root_path    = $file.data("file_root_path");
-		file.file_path    = $file.data("file_path");
-		file.file_url    = $file.data("file_url");
-		file.file_width    = $file.data("file_width");
-		file.file_height    = $file.data("file_height");
-		file.file_name    = $file.data("file_name");
-		file.file_type    = $file.data("file_type");
-		
-		if (file.file_url == undefined) {
-			continue;
-		} else {
-			files.push(file);
-		}
-	}	
-	return files;
-}
+    var files = [];
+    var number = jQuery(".filelist li").size();
 
+    for (var i = 0; i < number; i++) {
+        var file         = new Object();
+        var $file        = jQuery(".filelist li").eq(i);
+        file.file_root_path    = $file.data("file_root_path");
+        file.file_path    = $file.data("file_path");
+        file.file_url    = $file.data("file_url");
+        file.file_width    = $file.data("file_width");
+        file.file_height    = $file.data("file_height");
+        file.file_name    = $file.data("file_name");
+        file.file_type    = $file.data("file_type");
+
+        if (file.file_url == undefined) {
+            continue;
+        } else {
+            files.push(file);
+        }
+    }
+    return files;
+}
