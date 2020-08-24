@@ -26,13 +26,30 @@ class Base
     }
 
     /**
+     * 获取文件前缀，文件分类
+     * @param $file_type
+     * @return string
+     */
+    protected function getFilePrefix($file_type){
+        if(empty($file_type)) return "unknown";
+        $file_type_arr=explode('/',$file_type);
+        if(!isset($file_type_arr[0]) || empty($file_type_arr[0])){
+            $file_type_dir="unknown";
+        }else{
+            $file_type_dir=$file_type_arr[0];
+        }
+        return $file_type_dir;
+    }
+
+    /**
      * getUploadDir
      * @todo 获取上传目录名称
      * @param int $time 时间戳
      * @return false|string
      */
-    protected function getUploadDir($time){
-        return date('Ym',$time);
+    protected function getUploadDir($time,$fegefu=DIRECTORY_SEPARATOR){
+        $file_type_dir=$this->getFilePrefix($_FILES['file']['type']);
+        return $file_type_dir.$fegefu.date('Ym',$time);
     }
 
 	/**
@@ -48,11 +65,23 @@ class Base
      * getFileName
      * @todo 获取上传后的文件名
      * @param int $time  时间戳
-     * @param string $fiel_ext 文件后缀名
+     * @param string $file_ext 文件后缀
      * @return string
      */
-    protected function getFileName($time,$fiel_ext=''){
-        return date('YmdHis',$time).'_'.mt_rand(1000,9999).'.'.$fiel_ext;
+    protected function getFileName($time,$file_ext){
+        return date('YmdHis',$time).'_'.mt_rand(1000,9999).'.'.$file_ext;
+    }
+
+    /**
+     * web 直传服务器
+     * @param string $fegefu
+     * @return string
+     */
+    protected function getWebUpFileUrl($fegefu=DIRECTORY_SEPARATOR){
+        $file_ext=empty($_POST['file_ext'])?'':$_POST['file_ext'];
+        $file_type_dir=$this->getFilePrefix($_POST['file_type']);
+        $time=time();
+        return $file_type_dir.$fegefu.date('Ym',$time).$fegefu.$this->getFileName($time,$file_ext);
     }
 
     // TODO PHP上传失败

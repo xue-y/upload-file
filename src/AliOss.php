@@ -53,10 +53,9 @@ class AliOss extends Base
      * @title获取签名
      */
     public function getSign(){
-        $file_ext=isset($_POST['file_ext'])?$_POST['file_ext']:'';
         // 可以根据文件类型，创建文件夹  image plan ,需要前端传参 ; $dir用户上传文件时指定的文件名
         $time=time();
-        $dir=$this->getUploadDir($time).DIRECTORY_SEPARATOR.$this->getFileName($time,$file_ext);
+        $dir=$this->getUploadDir($time).DIRECTORY_SEPARATOR.$this->getFileName($time);
         $callback_param = array('callbackUrl'=>$this->config['callbackUrl'],
                                 'callbackBody'=>$this->getReturnBody(),
                                 'callbackBodyType'=>"application/x-www-form-urlencoded");
@@ -234,6 +233,7 @@ class AliOss extends Base
     /**
      * delFile
      * @title 删除一个或多个文件
+     * @url https://help.aliyun.com/document_detail/88513.html?spm=a2c4g.11186623.6.1137.3eb37eb51ZTVjr
      */
     public function delFile(){
         $file_path=$_POST['file_path'];
@@ -256,11 +256,11 @@ class AliOss extends Base
                     //$object[$k]=str_replace(array($old_http_url,$http_url),'',$v);
                     $object[$k]=str_replace($this->config['remoteHost'],'',$v);
                 }
-                $is_del=$ossClient->deleteObjects($bucket,$object);
+                $is_del=$ossClient->deleteObjects($bucket,$file_path);
             }else{
                 //$object=str_replace($http_url,'',$file_path);
                 $object=str_replace($this->config['remoteHost'],'',$file_path);
-                $is_del=$ossClient->deleteObject($bucket,$object);
+                $is_del=$ossClient->deleteObject($bucket,$file_path);
             }
             if($is_del){
                 $this->resultMsg(1,'删除成功');

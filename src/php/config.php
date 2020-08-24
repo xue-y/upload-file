@@ -29,16 +29,24 @@ return [
         'endpoint'=>'',
         'bucket'=>'',
         'protocol'=>'https',
-        'extensions'=>'jpg,png,gif'
+        'extensions'=>'jpg,png,gif',
+		'cdn'=>'',
     ],
     'qiniu'=>[
-        'accessKey'=>'accessKey',
-        'secretKey'=>'secretKey',
-		'remoteHost'=>'http://localhost', // 上传服务器域名
-        'bucket'=>'bucket',
+        'accessKey'=>'',
+        'secretKey'=>'',
+		'remoteHost'=>'http://qfiksdjeg.hd-bkt.clouddn.com/', // 上传服务器域名
+        'bucket'=>'casphp', // 空间名称
+		'endpoint'=>'s3-cn-east-1.qiniucs.com',//区域节点
         'callbackUrl'=>'http://localhost/Callback.php',
         'policyExpire'=>3600, // 请求签名超时
         'maxFileSize'=>100, // 最大上传文件大小 100MB
-        'extensions'=>'jpg,png,gif'
+        'extensions'=>'jpg,png,gif',
+		'cdn'=>'', // cdn 地址
+        'region'=>'qiniu.region.z0', // 空间所在地区
+        'protocol'=>'http://',// 协议
+        'web_url'=>'upload.qiniup.com',// web 上传地址
+        'server_url'=>'up.qiniup.com', // 服务端上传地址 https://developer.qiniu.com/kodo/manual/1671/region-endpoint?ref=support.qiniu.com
+        'file_name_fegefu'=>'_',
     ]
 ];

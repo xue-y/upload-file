@@ -59,14 +59,8 @@ class Local extends Base
         if(!is_writeable($this->uploadTmpDir)){
             $this->resultMsg(0,$this->uploadTmpDir.'不可写');
         }
-        // Create target dir，如果需要可以定义按照文件类型分文件夹
-        $file_type=explode('/',$_FILES['file']['type']);
-        if(!isset($file_type[0]) || empty($file_type[0])){
-            $file_type_dir="unknown";
-        }else{
-            $file_type_dir=$file_type[0];
-        }
-        $this->uploadDir=$this->config['uploadDir'].DIRECTORY_SEPARATOR.$file_type_dir.DIRECTORY_SEPARATOR.$this->getUploadDir($this->time);
+        // Create target dir，
+        $this->uploadDir=$this->config['uploadDir'].DIRECTORY_SEPARATOR.$this->getUploadDir($this->time);
         if (!file_exists($this->uploadDir)) {
             @mkdir($this->uploadDir,0755,true);
         }

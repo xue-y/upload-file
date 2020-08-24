@@ -11,6 +11,7 @@ function upfile(id_ele,option) {
     var file_num_limit=option.file_num_limit || 20; //上传个数
     var file_size_limit=option.file_size_limit || 200;// 上传文件总数的大小
     var file_single_size_limit=option.file_single_size_limit||100; // 上传单个大小限制
+    var chunked=option.chunked || false;
     var chunk_size=option.chunk_size || 5;//分片大小
     var mime_types=option.mime_types || 'image/*';// 上传类型
     var extensions=option.extensions || 'gif,jpg,jpeg,bmp,png';
@@ -18,10 +19,28 @@ function upfile(id_ele,option) {
     var up_type=option.up_type || 'local';//上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
     var webuploader_pick_text=option.webuploader_pick_text || '点击选择图片/文件'; // 上传按钮文本
     var del_file_url=option.del_file_url || 'src/examples/del_local_file.php';
-    var up_file_url=option.up_file_url || 'src/examples/up_local_file.php';
+    var up_file_url=option.up_file_url || 'src/examples/up_local_file.php'; //
     var get_sign_url=option.get_sign_url || '';
-    var up_field_name=option.up_field_name || 'up_file';
-console.log(mime_types);
+    var up_field_name=option.up_field_name || 'file_path';
+    var sing_res={};
+
+    // 只有本地 才分片，七牛云直传需要使用官方插件支持分片
+    if(chunked && up_type!="local") {
+        chunked=false;
+    }
+
+    // 取得文件mime_types
+    var file_prefix=mime_types.split("/")[0] || 'unknown';
+	
+	var ERROR_INFO={
+		'sign_serverUrl':'请配置获取签名地址',	
+	};
+
+	if((up_type=='web_ali' || up_type=='web_qiniu') && (!get_sign_url || get_sign_url.length<5)){
+		layer.alert(ERROR_INFO.ailSign_serverUrl);
+		return false;
+	}
+
     // 上传文件图片描述
     var up_file_desc='图片';
     var up_file_unit='张';
@@ -34,13 +53,12 @@ console.log(mime_types);
     }
 
     //正则判断上传的mime_types
-    var mine_arr=mime_types.match(/([a-z]+\/)/g);
+    /*var mine_arr=mime_types.match(/([a-z]+\/)/g);
     var mine_len=mine_arr.length;
-    if($.inArray('image/', mine_arr)!=-1){
-        if(mine_len>=1){
-            up_file_desc='图片/文件';
-            up_file_unit='个';
-        }
+    if($.inArray('image/', mine_arr)!=-1){*/
+    if('image'==file_prefix){
+        up_file_desc='图片/文件';
+        up_file_unit='个';
     }else{
         up_file_desc='文件';
         up_file_unit='个';
@@ -182,7 +200,6 @@ console.log(mime_types);
             layer.alert( 'Web Uploader 不支持您的浏览器！');
             return;
         }
-
         // 实例化
         uploader = WebUploader.create({
             pick: {
@@ -194,7 +211,7 @@ console.log(mime_types);
             dnd: dnd,
             paste: paste,
             swf: static_file+'Uploader.swf',
-            chunked: true,
+            chunked: chunked, // 只有本地分片，做了判断
             chunkSize: chunk_size * 1024 * 1024, //5M
             server: up_file_url,
             // runtimeOrder: 'flash',
@@ -254,28 +271,35 @@ console.log(mime_types);
 
         //某个文件开始上传前触发，一个文件只会触发一次。发送额外数据
         uploader.on("uploadStart", function(file){
-            var file_ext=file.ext;
             // 判断上传方式上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
             switch(up_type){
                 case 'web_ali':
-                    var res=getAilSign(file.ext,get_sign_url);
+                    sing_res=getAilSign(file.type,file.ext,get_sign_url);
+                    res.dir+='.'+file.ext;
                     uploader.options.formData= {
-                        'policy': res.policy,
-                        'key':res.dir,
-                        'OSSAccessKeyId': res.accessid,
+                        'policy': sing_res.policy,
+                        'key':sing_res.dir,
+                        'OSSAccessKeyId': sing_res.accessid,
                         'success_action_status' : '200', //让服务端返回200,不然，默认会返回204
-                        'callback' : res.callback,
-                        'signature': res.signature,
+                        'callback' : sing_res.callback,
+                        'signature': sing_res.signature,
                     };
                     uploader.options.server=res.host;
                     break;
                 case 'web_qiniu':
                     //https://segmentfault.com/a/1190000002781331
-                    var res=getQiniuSign(get_sign_url);
+                    sing_res=getQiniuSign(file.type,file.ext,get_sign_url);
+                    console.log(sing_res);
                     uploader.options.formData= {
-                        'token':res.token
+                        'token':sing_res.token,
+                         'key':sing_res.key,
+                         'bucket':sing_res.bucket,
+                         'useCdnDomain': true,// 没有配置cdn
+                        //'checkByMD5':true,// 是否开启 MD5 校验，为布尔值 ,分片，没有使用官方插件
+                        //'chunkSize':4
+                        'region':sing_res.region
                     };
-                    uploader.options.server=res.host;
+                    uploader.options.server=sing_res.web_url;
                     break;
             }
         });
@@ -607,18 +631,39 @@ console.log(mime_types);
                     setState( 'paused' );
                     break;
                 case 'uploadSuccess':
-
                     // 赋值一些数据传给其他页面或赋值给某个元素
                     //"#" + file.id 是上传文件的容器元素
-                    var $li=$wrap.find('li#'+file.id);
+                    var $li=$wrap.find('li#'+file.id),file_path,erro_msg;
+                    if(up_type=='web_qiniu'){
+                        if(response.hash!=''){
+                            response.code=1;
+                            $li.data("file_root_path", response.key);
+                            $li.data("file_path", response.key);
+                            $li.data("file_url",sing_res.domain+response.key);
+                            $li.data("file_hash", response.hash);
+                            $li.data("file_width", '');
+                            $li.data("file_height", '');
+                            $li.data("file_name", file.name);
+                            $li.data("file_type", file.type);
+                            $li.data("file_size", file.size);
+                            file_path=response.key;
+                        }else{
+                            erro_msg=response;
+                        }
+                    }
+                    // 服务端上传
                     if (response.data) {
                         $li.data("file_root_path", response.data.file_root_path);
                         $li.data("file_path", response.data.file_path);
                         $li.data("file_url", response.data.file_url);
+                        $li.data("file_hash", response.data.file_hash);
                         $li.data("file_width", response.data.file_width);
                         $li.data("file_height", response.data.file_height);
                         $li.data("file_name", file.name);
                         $li.data("file_type", file.type);
+                        $li.data("file_size", file.size);
+                        file_path=response.data.file_path;
+                        erro_msg=response.msg;
                     }
 
                     var $btns = $('<div class="file-panel">' +
@@ -635,43 +680,30 @@ console.log(mime_types);
                     $btns.on( 'click', 'span', function() {
                         if(response.code==1){
                             // 执行服务删除文件
-                            deleteServerFile(response.data.file_path,del_file_url);
+                            deleteServerFile(file_path,del_file_url,function(){
+                                // 删除动画完成后，执行
+                                uploader.removeFile( file );
+                            });
+                        }else{
+                            // 删除动画完成后，执行
+                            uploader.removeFile( file );
                         }
-                        uploader.removeFile( file );
                     });
 
                     if(response.code==1){
                         // 点击看大图
                         layer.photos({
                             photos: '.imgWrap'
-                            ,anim: 5//0-6的选择，指定弹出图片动画类型，默认随机（请注意，3.0之前的版本用shift参数）
+                            ,anim: 1//0-6的选择，指定弹出图片动画类型，默认随机（请注意，3.0之前的版本用shift参数）
                         });
-                        // 点击看大图
-                        /*$li.find('.imgWrap img').click(function(){
-                            layer.photos({
-                                photos: {
-                                  //  "start": 0, //初始显示的图片序号，默认0
-                                    "data": [   //相册包含的图片，数组格式
-                                        {
-                                            "src": response.data.file_url, //原图地址
-                                        }
-                                    ]
-                                } //格式见API文档手册页
-                                , anim: 5, //0-6的选择，指定弹出图片动画类型，默认随机
-                                shadeClose: true,
-                                // skin: 'layui-layer-nobg',
-                                shade: [0.5, '#000000'],
-                                shadeClose: true,
-                            })
-                        });*/
-                        // 元素赋值
-                        $li.append('<input type="hidden" name="'+option.up_field_name+'[]" value="'+response.data.file_url+'">');
+
+                        // 元素赋值删除
+                        $li.append('<input type="hidden" name="'+up_field_name+'[]" value="'+file_path+'">');
                         $li.append( '<span class="success"></span>' );
                         $li.find('.progress').css('display','none');
 
-
                     }else{
-                        $li.append( '<p class="error">'+response.msg+'</p>' );
+                        $li.append( '<p class="error">'+erro_msg+'</p>' );
                     }
                     break;
             }
@@ -760,39 +792,54 @@ function getAilSignIe(file_ext,serverUrl)
 }
 
 // 获取阿里云签名
-function getAilSign(file_ext,serverUrl) {
+function getAilSign(file_type,file_ext,serverUrl) {
     var result;
     $.ajaxSettings.async = false; // 同步
-    $.post(serverUrl,{'file_ext':file_ext},function(data){
-        result=data;
+    $.post(serverUrl,{'file_type':file_type,'file_ext':file_ext},function(data){
+        result=data.data;
     },'json').error(function(xhr,status,errorInfo){
-        layer.alert(status+':'+errorInfo);
-        return;
+		layer.alert(status+':'+errorInfo);
+        return false;
     });
     $.ajaxSettings.async = true; // 异步
     return result;
 }
 // 获取七牛云签名
-function getQiniuSign(serverUrl){
+function getQiniuSign(file_type,file_ext,serverUrl){
     var result;
     $.ajaxSettings.async = false; // 同步
-    $.post(serverUrl,function(data){
-        result=data;
+    $.post(serverUrl,{'file_type':file_type,'file_ext':file_ext},function(data){
+        result=data.data;
     },'json').error(function(xhr,status,errorInfo){
         layer.alert(status+':'+errorInfo);
-        return;
+        return false;
     });
     $.ajaxSettings.async = true; // 异步
     return result;
 }
 
 // 服务端执行删除文件
-function deleteServerFile(file_path,serverUrl){
-    $.post(serverUrl,{'file_path':file_path},function(data){
-        console.log(data);
-    }).error(function(xhr,status,errorInfo){
-        console.log(status+':'+errorInfo);
+function deleteServerFile(file_path,serverUrl,fn){
+    $.ajax({
+        type: "POST",
+        data: {'file_path':file_path},
+        dataType: "json",
+        url: serverUrl,
+        beforeSend: function () {
+            // 开始加载动画
+        },
+        success: function (data) {
+            console.log(data);
+        },
+        complete: function () {
+            // 结束加载动画
+            if(fn)fn();
+        },
+        error: function (xhr,status,errorInfo) {
+            console.log(status+':'+errorInfo);
+        }
     });
+
 }
 
 /*如果调用的当前页面是弹窗页面,其父页面获取图片信息,
@@ -821,10 +868,12 @@ function get_files()
         file.file_root_path    = $file.data("file_root_path");
         file.file_path    = $file.data("file_path");
         file.file_url    = $file.data("file_url");
+        file.file_hash    = $file.data("file_hash");
         file.file_width    = $file.data("file_width");
         file.file_height    = $file.data("file_height");
         file.file_name    = $file.data("file_name");
         file.file_type    = $file.data("file_type");
+        file.file_size    = $file.data("file_size");
 
         if (file.file_url == undefined) {
             continue;

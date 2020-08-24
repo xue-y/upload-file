@@ -15,3 +15,7 @@ web 直传七牛云、服务端上传七牛云
         php/preview.php 兼容IE预览
     index.html      上传多个文件
     auto.html       上传单个文件（自动上传）
+
+#### 返回信息
+    0 失败
+    1 成功
