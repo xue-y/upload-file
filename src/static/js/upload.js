@@ -631,6 +631,7 @@ function upfile(id_ele,option) {
                     setState( 'paused' );
                     break;
                 case 'uploadSuccess':
+				console.log(response)
                     // 赋值一些数据传给其他页面或赋值给某个元素
                     //"#" + file.id 是上传文件的容器元素
                     var $li=$wrap.find('li#'+file.id),file_path,erro_msg;
@@ -643,9 +644,6 @@ function upfile(id_ele,option) {
                             $li.data("file_hash", response.hash);
                             $li.data("file_width", '');
                             $li.data("file_height", '');
-                            $li.data("file_name", file.name);
-                            $li.data("file_type", file.type);
-                            $li.data("file_size", file.size);
                             file_path=response.key;
                         }else{
                             erro_msg=response;
@@ -659,12 +657,13 @@ function upfile(id_ele,option) {
                         $li.data("file_hash", response.data.file_hash);
                         $li.data("file_width", response.data.file_width);
                         $li.data("file_height", response.data.file_height);
-                        $li.data("file_name", file.name);
-                        $li.data("file_type", file.type);
-                        $li.data("file_size", file.size);
                         file_path=response.data.file_path;
                         erro_msg=response.msg;
                     }
+					
+					$li.data("file_name", file.name);
+					$li.data("file_type", file.type);
+					$li.data("file_size", file.size);
 
                     var $btns = $('<div class="file-panel">' +
                         '<span class="cancel">删除</span></div>').appendTo( $li );

@@ -33,8 +33,8 @@ return [
 		'cdn'=>'',
     ],
     'qiniu'=>[
-        'accessKey'=>'',
-        'secretKey'=>'',
+        'accessKey'=>'S8EAygZYEyrJi3p-vUqwoq5YT-Sxkbr0iIjsmcDL',
+        'secretKey'=>'BwmIZFw0k-ApNfjO6SHgyb4j3vHNbCtqluECrDlj',
 		'remoteHost'=>'http://qfiksdjeg.hd-bkt.clouddn.com/', // 上传服务器域名
         'bucket'=>'casphp', // 空间名称
 		'endpoint'=>'s3-cn-east-1.qiniucs.com',//区域节点

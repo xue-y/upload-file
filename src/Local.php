@@ -185,10 +185,9 @@ class Local extends Base
         $data['file_path']=$this->filePath;
         $data['file_root_path']=$file_root_path;
         $data['file_url']=$this->config['file_url_dir'].$this->filePath;
+		$data['file_hash']='';// 后期添加 生成hash 
         $data['file_width']=$info[0];
         $data['file_height']=$info[1];
-        $data['file_type']=$info['mime'];
-        $data['file_size']=filesize($this->filePath);// 单位字节
         $this->resultMsg(1,'ok',$data);
     }
 
