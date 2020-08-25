@@ -1,5 +1,5 @@
 # upload-file
-webuploader 上传文件到本地    
+webuploader 上传文件到本地(分片上传)    
 web 直传阿里云、服务端上传阿里云    
 web 直传七牛云、服务端上传七牛云    
 

@@ -26,6 +26,16 @@ class Base
     }
 
     /**
+     * 前端获取初始化配置
+     */
+    public function getInitConfig(){
+        if(empty($_POST['type'])){
+            $this->resultMsg(0,'配置类型必传');
+        }
+       $this->resultMsg(1,'success',$this->init($_POST['type']));
+    }
+
+    /**
      * 获取文件前缀，文件分类
      * @param $file_type
      * @return string
@@ -133,20 +143,22 @@ class Base
         $this->fileError();
 
         // 验证文件大小
-        $max_file_size=$this->mbBytes($config['maxFileSize']);
+        $max_file_size=$this->mbBytes($config['file_single_size_limit']);
         if(isset($_FILES['file']['size'])){
             if($_FILES['file']['size']===0){
                 $this->resultMsg(0,'您上传的文件size为0');
             }else if($_FILES['file']['size']>$max_file_size){
-                $this->resultMsg(0,'您上传的文件超过最大限制'.$config['maxFileSize'].'MB');
+                $this->resultMsg(0,'您上传的文件超过最大限制'.$config['file_single_size_limit'].'MB');
             }
         }
 
         // 验证文件允许的类型--- 判断后缀名
-        $extensions=explode(',',$config['extensions']);
-        $file_ext=pathinfo($_FILES['file']['name'],PATHINFO_EXTENSION);
-        if(!in_array($file_ext,$extensions)){
-            $this->resultMsg(0,'您上传的文件后缀不允许');
+        if(!empty($config['extensions']) || ($config['extensions']!='*')){
+            $extensions=explode(',',$config['extensions']);
+            $file_ext=pathinfo($_FILES['file']['name'],PATHINFO_EXTENSION);
+            if(!in_array($file_ext,$extensions)){
+                $this->resultMsg(0,'您上传的文件后缀不允许');
+            }
         }
     }
 

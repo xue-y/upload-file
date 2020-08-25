@@ -34,11 +34,11 @@
     <script type="text/javascript" src="src/static/js/upload.js"></script>
 	<script src="https://cdn.bootcss.com/layer/2.3/layer.js"></script>
     <script type="text/javascript">
-        var option={
-            'mime_types':'text/*',
-            'extensions':'txt'
+        /*var option={
+            'mime_types':'*',
+            'extensions':'*'
         };
-        upfile('#click_upload',option)// 上传本地
+        upfile('#click_upload',option)*/// 上传本地
        /*  var option={
               'up_type':'web_ali',
 			  'get_sign_url':'src/examples/get_alioss_sign.php',
@@ -46,20 +46,22 @@
           };
         upfile('#click_upload',option)// web 直传阿里云*/
 		
-        /*var option={
+        var option={
           'up_type':'web_qiniu',
 		  'get_sign_url':'src/examples/get_qiniu_sign.php',
 		  'up_file_url':'',
           'del_file_url':'src/examples/del_qiniu_file.php',
-          'auto_up':false
+          'mime_types':'*',
+          'extensions':'*'
        };
-       upfile('#click_upload',option)*/// web 直传 七牛云
+       upfile('#click_upload',option)// web 直传 七牛云
 
         /*var option={
             'up_type':'php_qiniu',
             'up_file_url':'src/examples/up_qiniu_file.php',
             'del_file_url':'src/examples/del_qiniu_file.php',
-            'auto_up':false
+            'mime_types':'*',
+            'extensions':'*'
         };
         upfile('#click_upload',option);*/ // 服务器上传七牛云
 

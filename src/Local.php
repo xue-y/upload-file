@@ -21,6 +21,7 @@ class Local extends Base
     private $chunk;  // 是否分片
     private $config; // 配置
     private $time;// 文件夹/文件名
+	private $hash_data=[];
 
     /**
      * Upload constructor.
@@ -145,12 +146,13 @@ class Local extends Base
             }
         }
         if ( $done ) {
+			
+			// $sha1Str = sha1($fdata, true);
             if (!$out = @fopen($this->filePath, "wb")) {
                 $this->resultMsg(0,'文件无法打开输出流');
             }
 
             if ( flock($out, LOCK_EX) ) {
-
                 for( $index = 0; $index < $this->chunks; $index++ ) {
                     if (!$in = @fopen("{$this->fileTmpPath}_{$index}.part", "rb")) {
                         break;
@@ -158,6 +160,11 @@ class Local extends Base
 
                     while ($buff = fread($in, 4096)) {
                         fwrite($out, $buff);
+                        list($sha1Code, $err) = $this->getShal($buff);
+                        if ($err != null) {
+                            $this->errorLog("{$this->fileTmpPath}_{$index}.part".'生成shal 失败'.$err);
+                        }
+                        $this->hash_data[]=$sha1Code;
                     }
 
                     @fclose($in);
@@ -168,6 +175,63 @@ class Local extends Base
             }
             @fclose($out);
         }
+    }
+
+    /**
+     * 创建 shal，并将 shal 从二进制字符串对数据进行解包
+     * @param $str
+     * @return array
+     */
+    private function getShal($str){
+        $byteArray=unpack('C*', sha1($str, true));
+       return array($byteArray, null);
+    }
+
+    /**
+     * 二进制字符转为字符串
+     * @param $v
+     * @param $a
+     * @return mixed
+     */
+    private function packArray($v, $a) {
+        return call_user_func_array('pack', array_merge(array($v),(array)$a));
+    }
+
+    /**
+     * @param $str
+     * @return mixed
+     */
+    private function urlSafeBase64Encode($str)
+    {
+        $find = array('+', '/');
+        $replace = array('-', '_');
+        return str_replace($find, $replace, base64_encode($str));
+    }
+
+    /**
+     * 合并生成sha1
+     * @url //https://github.com/qiniu/qetag
+     * @return mixed
+     */
+    private function getHash(){
+        $tmpData = $this->packArray('C*', $this->hash_data);
+        $tmpFhandler = tmpfile();
+        fwrite($tmpFhandler, $tmpData);
+        fseek($tmpFhandler, 0);
+        $sha1_content=fread($tmpFhandler, strlen($tmpData));
+        fclose($tmpFhandler);
+        list($sha1Final, $err) = $this->getShal($sha1_content);
+        if ($err != null) {
+            return array(null, $err);
+        }
+        // 判断是否分片 ($chunk===0) 为分片
+        if($this->chunk===0){
+            $sha1Buf[] = 0x16;
+        }else{
+            $sha1Buf[] = 0x96;
+        }
+        $hash_data = array_merge($sha1Buf, $sha1Final);
+        return $this->urlSafeBase64Encode($this->packArray('C*', $hash_data));
     }
 
     /**
@@ -185,7 +249,7 @@ class Local extends Base
         $data['file_path']=$this->filePath;
         $data['file_root_path']=$file_root_path;
         $data['file_url']=$this->config['file_url_dir'].$this->filePath;
-		$data['file_hash']='';// 后期添加 生成hash 
+		$data['file_hash']=$this->getHash();// 后期添加 生成hash
         $data['file_width']=$info[0];
         $data['file_height']=$info[1];
         $this->resultMsg(1,'ok',$data);

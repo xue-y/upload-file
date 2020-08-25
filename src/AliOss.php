@@ -65,7 +65,7 @@ class AliOss extends Base
         $expire = $this->config['policyExpire'];  //设置该policy超时时间是10s. 即这个policy过了这个有效时间，将不能访问。
         $end = $time + $expire;
         $expiration = $this->getIso8601($end);
-        $max_file_size=$this->mbBytes($this->config['maxFileSize']);// MB 转 字节
+        $max_file_size=$this->mbBytes($this->config['file_single_size_limit']);// MB 转 字节
 
         //最大文件大小.用户可以自己设置
         $condition = array(0=>'content-length-range', 1=>0, 2=>$max_file_size);
@@ -196,7 +196,7 @@ class AliOss extends Base
         $file_temp_name=$_FILES['file']['tmp_name'];//上传的本地文件
         $file_exe=$this->getFileExt();
         $file_oss_name=$this->getFilePath($file_exe);
-        $chunk_size=$this->mbBytes($this->config['chunkSize']); // 分片大小
+        $chunk_size=$this->mbBytes($this->config['chunk_size']); // 分片大小
 
         //获取对象
         $oss_client = new OssClient($accessKeyId,$accessKeySecret,$endpoint);
@@ -213,7 +213,7 @@ class AliOss extends Base
         }else{
             $options = array(
                 OssClient::OSS_CHECK_MD5 => true,
-                OssClient::OSS_PART_SIZE => $this->config['chunkSize'],
+                OssClient::OSS_PART_SIZE => $this->config['chunk_size'],
             );
             try{
                 $result=$oss_client->multiuploadFile($bucket, $file_oss_name, $file_temp_name, $options);

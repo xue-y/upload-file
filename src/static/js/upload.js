@@ -1,5 +1,6 @@
 var static_file='../img/';
 var common_php='../../php/';
+
 // 当domReady的时候开始初始化
 function upfile(id_ele,option) {
 
@@ -7,26 +8,35 @@ function upfile(id_ele,option) {
      如果需要封装函数，可以从以下开始封装
      参数：上传图片元素，上传个数，上传单个大小限制，上传文件urlPath，上传类型，分片大小,
      上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
+     可以ajax 获取后端 文件后缀，文件大小，文件类型的 配置，前后端一致
     */
-    var file_num_limit=option.file_num_limit || 20; //上传个数
-    var file_size_limit=option.file_size_limit || 200;// 上传文件总数的大小
-    var file_single_size_limit=option.file_single_size_limit||100; // 上传单个大小限制
-    var chunked=option.chunked || false;
-    var chunk_size=option.chunk_size || 5;//分片大小
-    var mime_types=option.mime_types || 'image/*';// 上传类型
-    var extensions=option.extensions || 'gif,jpg,jpeg,bmp,png';
-    //var auto_up=option.auto_up===true?option.auto_up:false;// 自动上传
+    var is_develop=option.is_develop || true;
+    var auto_up=option.auto_up || false;// 自动上传
     var up_type=option.up_type || 'local';//上传类型（web_ali,php_ali,local,web_qiniu,php_qiniu）
     var webuploader_pick_text=option.webuploader_pick_text || '点击选择图片/文件'; // 上传按钮文本
     var del_file_url=option.del_file_url || 'src/examples/del_local_file.php';
-    var up_file_url=option.up_file_url || 'src/examples/up_local_file.php'; //
+    var up_file_url=option.up_file_url || 'src/examples/up_local_file.php';
+    var init_config_url=option.init_config_url || 'src/examples/up_local_file.php';
     var get_sign_url=option.get_sign_url || '';
     var up_field_name=option.up_field_name || 'file_path';
-    var sing_res={};
+    var sing_res={},chunked=false;
 
     // 只有本地 才分片，七牛云直传需要使用官方插件支持分片
-    if(chunked && up_type!="local") {
-        chunked=false;
+    if(up_type=="local") {
+        chunked=true;
+    }
+
+    // 获取初始化配置
+    var config_type=up_type.split("_")[1] || "local";
+    var init_config=getInitConfig('src/examples/get_init_config.php',config_type);
+    if(init_config){
+        if(is_develop)console.log(init_config);
+        var file_num_limit=init_config.file_num_limit || 20; //上传个数
+        var file_size_limit=init_config.file_size_limit || 200;// 上传文件总数的大小
+        var file_single_size_limit=init_config.file_single_size_limit||100; // 上传单个大小限制 file_single_size_limit
+        var chunk_size=init_config.chunk_size || 5;//分片大小
+        var mime_types=init_config.mime_types || 'image/*';// 上传类型
+        var extensions=init_config.extensions || 'gif,jpg,jpeg,bmp,png';
     }
 
     // 取得文件mime_types
@@ -275,7 +285,9 @@ function upfile(id_ele,option) {
             switch(up_type){
                 case 'web_ali':
                     sing_res=getAilSign(file.type,file.ext,get_sign_url);
-                    res.dir+='.'+file.ext;
+                    if(is_develop){
+                        console.log(sing_res);
+                    }
                     uploader.options.formData= {
                         'policy': sing_res.policy,
                         'key':sing_res.dir,
@@ -289,7 +301,9 @@ function upfile(id_ele,option) {
                 case 'web_qiniu':
                     //https://segmentfault.com/a/1190000002781331
                     sing_res=getQiniuSign(file.type,file.ext,get_sign_url);
-                    console.log(sing_res);
+                    if(is_develop){
+                        console.log(sing_res);
+                    }
                     uploader.options.formData= {
                         'token':sing_res.token,
                          'key':sing_res.key,
@@ -307,6 +321,9 @@ function upfile(id_ele,option) {
 
         // 当有文件添加进来时执行，负责view的创建
         function addFile( file ) {
+            if(is_develop){
+                console.log(file);
+            }
             var $li = $( '<li id="' + file.id + '">' +
                 '<p class="title">' + file.name + '</p>' +
                 '<p class="imgWrap"></p>'+
@@ -631,7 +648,10 @@ function upfile(id_ele,option) {
                     setState( 'paused' );
                     break;
                 case 'uploadSuccess':
-				console.log(response)
+                    // 服务端上传成功、web 直传回调返回数据
+                    if(is_develop){
+                        console.log(response);
+                    };
                     // 赋值一些数据传给其他页面或赋值给某个元素
                     //"#" + file.id 是上传文件的容器元素
                     var $li=$wrap.find('li#'+file.id),file_path,erro_msg;
@@ -679,7 +699,7 @@ function upfile(id_ele,option) {
                     $btns.on( 'click', 'span', function() {
                         if(response.code==1){
                             // 执行服务删除文件
-                            deleteServerFile(file_path,del_file_url,function(){
+                            deleteServerFile(file_path,del_file_url,is_develop,function(){
                                 // 删除动画完成后，执行
                                 uploader.removeFile( file );
                             });
@@ -817,8 +837,24 @@ function getQiniuSign(file_type,file_ext,serverUrl){
     return result;
 }
 
+function getInitConfig(serverUrl,config_type) {
+    var result;
+    $.ajaxSettings.async = false; // 同步
+    $.post(serverUrl,{'type':config_type},function(data){
+        if(data.code<1){
+            layer.alert(data.msg);
+        }
+        result=data.data;
+    },'json').error(function(xhr,status,errorInfo){
+        layer.alert(status+':'+errorInfo);
+        return false;
+    });
+    $.ajaxSettings.async = true; // 异步
+    return result;
+}
+
 // 服务端执行删除文件
-function deleteServerFile(file_path,serverUrl,fn){
+function deleteServerFile(file_path,serverUrl,is_develop,fn){
     $.ajax({
         type: "POST",
         data: {'file_path':file_path},
@@ -828,7 +864,9 @@ function deleteServerFile(file_path,serverUrl,fn){
             // 开始加载动画
         },
         success: function (data) {
-            console.log(data);
+            if(is_develop){
+                console.log(data);
+            }
         },
         complete: function () {
             // 结束加载动画
